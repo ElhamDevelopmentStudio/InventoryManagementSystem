@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, ChangeEvent, useEffect } from "react";
 import {
   Container,
   Typography,
@@ -11,12 +11,23 @@ import {
   Box,
   Paper,
 } from "@mui/material";
+import { SelectChangeEvent } from "@mui/material/Select";
 import { styled } from "@mui/material/styles";
 import axios from "axios";
 
 const Input = styled("input")({
   display: "none",
 });
+
+interface Category {
+  id: number;
+  name: string;
+}
+
+interface Supplier {
+  id: number;
+  companyName: string;
+}
 
 const CreateProductPage = () => {
   const [productData, setProductData] = useState({
@@ -27,17 +38,37 @@ const CreateProductPage = () => {
     unitsInStock: "",
   });
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
 
-  const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  useEffect(() => {
+    // Fetch categories and suppliers
+    const fetchCategories = async () => {
+      const response = await axios.get<Category[]>(
+        "http://127.0.0.1:8000/api/categories/"
+      );
+      setCategories(response.data);
+    };
+
+    const fetchSuppliers = async () => {
+      const response = await axios.get<Supplier[]>(
+        "http://127.0.0.1:8000/api/suppliers/"
+      );
+      setSuppliers(response.data);
+    };
+
+    fetchCategories();
+    fetchSuppliers();
+  }, []);
+
+  const handleInputChange = (event: ChangeEvent<HTMLInputElement>) => {
     setProductData({ ...productData, [event.target.name]: event.target.value });
   };
 
-  const handleSelectChange = (
-    event: React.ChangeEvent<{ name?: string; value: unknown }>
-  ) => {
+  const handleSelectChange = (event: SelectChangeEvent) => {
     setProductData({
       ...productData,
-      [event.target.name as string]: event.target.value,
+      [event.target.name]: event.target.value,
     });
   };
 
@@ -51,11 +82,11 @@ const CreateProductPage = () => {
     event.preventDefault();
 
     const formData = new FormData();
-    formData.append("name", productData.name);
-    formData.append("category", productData.category);
-    formData.append("supplier", productData.supplier);
-    formData.append("unitprice", productData.unitprice);
-    formData.append("unitsInStock", productData.unitsInStock);
+    formData.append("Name", productData.name);
+    formData.append("Category", productData.category);
+    formData.append("Supplier", productData.supplier);
+    formData.append("Unitprice", productData.unitprice);
+    formData.append("UnitsInStock", productData.unitsInStock);
 
     if (selectedImage) {
       formData.append("image", selectedImage);
@@ -63,14 +94,13 @@ const CreateProductPage = () => {
 
     try {
       const response = await axios.post(
-        "http://api.example.com/api/products/",
+        "http://127.0.0.1:8000/api/products/",
         formData
       );
       console.log(response.data);
-      // Handle successful submission here
+      console.log("Successful Submission");
     } catch (error) {
       console.error(error);
-      // Handle errors here
     }
   };
 
@@ -123,10 +153,11 @@ const CreateProductPage = () => {
               label="Category"
               onChange={handleSelectChange}
             >
-              {/* Replace with categories fetched from the API */}
-              <MenuItem value={1}>Category 1</MenuItem>
-              <MenuItem value={2}>Category 2</MenuItem>
-              {/* ... */}
+              {categories.map((category) => (
+                <MenuItem key={category.id} value={category.id}>
+                  {category.name}
+                </MenuItem>
+              ))}
             </Select>
           </FormControl>
           {/* Supplier - Should be fetched from the API and mapped to MenuItems */}
@@ -140,10 +171,11 @@ const CreateProductPage = () => {
               label="Supplier"
               onChange={handleSelectChange}
             >
-              {/* Replace with suppliers fetched from the API */}
-              <MenuItem value={1}>Supplier 1</MenuItem>
-              <MenuItem value={2}>Supplier 2</MenuItem>
-              {/* ... */}
+              {suppliers.map((supplier) => (
+                <MenuItem key={supplier.id} value={supplier.id}>
+                  {supplier.companyName}
+                </MenuItem>
+              ))}
             </Select>
           </FormControl>
           {/* Unit price */}
